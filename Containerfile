@@ -9,7 +9,7 @@ COPY steamos-* /usr/bin/
 # Run commands in container
 RUN cp /etc/pacman.conf /etc/pacman.conf.bak && \
     sed -i '/^\[core\]/s/^/\[chos\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
-    pacman --noconfirm -Syyuu --overwrite ="*" linux-chimeraos chos/steamos-efi grub dracut zsh && \
+    pacman --noconfirm -Syyuu --overwrite ="*" linux-chimeraos chos/steamos-efi && \
     rm -rf /tmp/repo && \ 
     mkdir -p esp && \
     mkdir -p efi && \

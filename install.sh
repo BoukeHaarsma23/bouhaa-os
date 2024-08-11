@@ -60,7 +60,6 @@ finalize_part()
   cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- mkdir -p /esp/SteamOS/conf
   cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- steamos-partsets /efi/SteamOS/partsets
   cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- steamos-bootconf create --image "$1" --conf-dir /esp/SteamOS/conf --efi-dir /efi --set title "$1"
-  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- grub-mkimage -o /efi/SteamOS/grubx64.efi -O x86_64-efi -p /boot
 }
 
 # Replace the device rootfs
@@ -84,6 +83,13 @@ imageroot()
 ##
 ## Main
 ##
+onexit=()
+exithandler() {
+  for func in "${onexit[@]}"; do
+    "$func"
+  done
+}
+trap exithandler EXIT
 
 device_output=`lsblk --list -n -o name,model,size,type | grep disk | tr -s ' ' '\t'`
 
@@ -137,6 +143,8 @@ fmt_fat32 efi  "$(diskpart $FS_EFI_B)"
 source="docker://ghcr.io/boukehaarsma23/bouhaa-os:latest"
 deploydir=$(mktemp -d)
 skopeo copy $source dir:$deploydir
+onexit+=(rm -rf $deploydir)
+
 estat "Imaging OS partition A"
 fmt_ext4 rootfs-A "$(diskpart $FS_ROOT_A)"
 imageroot "$deploydir" "$(diskpart $FS_ROOT_A)"

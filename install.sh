@@ -3,7 +3,7 @@
 
 set -eu
 
-pacman --noconfirm -Syu git skopeo
+pacman --noconfirm -Sy archlinux-keyring git skopeo
 
 die() { echo >&2 "!! $*"; exit 1; }
 readvar() { IFS= read -r -d '' "$1" || true; }
@@ -72,8 +72,11 @@ imageroot()
 {
   local source="$1"
   local newroot="$2"
-  # todo
-
+  mkdir -p /mnt/deploy
+  mount $newroot /mnt/deploy
+  skopeo copy $source /mnt/deploy
+  umount $newroot
+  rm -rf /mnt/deploy
 }
 
 ##
@@ -129,12 +132,13 @@ fmt_fat32 efi  "$(diskpart $FS_EFI_A)"
 fmt_fat32 efi  "$(diskpart $FS_EFI_B)"
 
 # Install OS A/B partitions
-rootdevice="docker://ghcr.io/boukehaarsma23/bouhaa-os:latest"
+source="docker://ghcr.io/boukehaarsma23/bouhaa-os:latest"
 estat "Imaging OS partition A"
-imageroot "$rootdevice" "$(diskpart $FS_ROOT_A)"
-
+fmt_ext4 root "$(diskpart $FS_ROOT_A)"
+imageroot "$source" "$(diskpart $FS_ROOT_A)"
+fmt_ext4 root "$(diskpart $FS_ROOT_B)"
 estat "Imaging OS partition B"
-imageroot "$rootdevice" "$(diskpart $FS_ROOT_B)"
+imageroot "$source" "$(diskpart $FS_ROOT_B)"
 
 estat "Finalizing boot configurations"
 finalize_part A

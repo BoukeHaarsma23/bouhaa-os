@@ -66,23 +66,19 @@ finalize_part()
 # Replace the device rootfs
 #   $1 source
 #   $2 target device
-#
 imageroot()
 {
   local source="$1"
   local newroot="$2"
-  mkdir -p /mnt/deploy
-  mkdir -p /tmp/deploy
-  mount $newroot /mnt/deploy
-  skopeo copy $source dir:/tmp/deploy
-  readarray -t LAYERS < <(cat /tmp/deploy/manifest.json | jq -r '.layers[].digest')
+  local deploymnt=$(mktemp -d)
+  mount $newroot $deploymnt
+  readarray -t LAYERS < <(cat $source/manifest.json | jq -r '.layers[].digest')
   for LAYER in "${LAYERS[@]}"; do
     IMG_FILE=$(echo "${LAYER}" | cut -f 2 -d ':' )
-    IMG_FILE="/tmp/deploy/${IMG_FILE}" 
-    tar --same-owner -xf ${IMG_FILE} -C /mnt/deploy
+    IMG_FILE="$source/${IMG_FILE}" 
+    tar --same-owner -xf ${IMG_FILE} -C $deploymnt
   done
   umount $newroot
-  rm -rf /mnt/deploy
 }
 
 ##
@@ -139,12 +135,14 @@ fmt_fat32 efi  "$(diskpart $FS_EFI_B)"
 
 # Install OS A/B partitions
 source="docker://ghcr.io/boukehaarsma23/bouhaa-os:latest"
+deploydir=$(mktemp -d)
+skopeo copy $source dir:$deploydir
 estat "Imaging OS partition A"
 fmt_ext4 rootfs-A "$(diskpart $FS_ROOT_A)"
-imageroot "$source" "$(diskpart $FS_ROOT_A)"
+imageroot "$deploydir" "$(diskpart $FS_ROOT_A)"
 fmt_ext4 rootfs-B "$(diskpart $FS_ROOT_B)"
 estat "Imaging OS partition B"
-imageroot "$source" "$(diskpart $FS_ROOT_B)"
+imageroot "$deploydir" "$(diskpart $FS_ROOT_B)"
 
 estat "Finalizing boot configurations"
 finalize_part A

@@ -50,13 +50,31 @@ cmd() { showcmd "$@"; "$@"; }
 fmt_ext4()  { [[ $# -eq 2 && -n $1 && -n $2 ]] || die; cmd sudo mkfs.ext4 -F -L "$1" "$2"; }
 fmt_fat32() { [[ $# -eq 2 && -n $1 && -n $2 ]] || die; cmd sudo mkfs.vfat -n"$1" "$2"; }
 
-onexit=()
-exithandler() {
-  for func in "${onexit[@]}"; do
-    "$func"
-  done
+
+# Set up boot configuration in the target partition set
+#   $1 partset name
+finalize_part()
+{
+  estat "Finalizing install part $1"
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- mkdir /efi/SteamOS
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- mkdir -p /esp/SteamOS/conf
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- steamos-partsets /efi/SteamOS/partsets
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- steamos-bootconf create --image "$1" --conf-dir /esp/SteamOS/conf --efi-dir /efi --set title "$1"
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- grub-mkimage
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- update-grub
 }
-trap exithandler EXIT
+
+# Replace the device rootfs
+#   $1 source
+#   $2 target device
+#
+imageroot()
+{
+  local source="$1"
+  local newroot="$2"
+  # todo
+
+}
 
 ##
 ## Main
@@ -110,3 +128,16 @@ fmt_fat32 esp  "$(diskpart $FS_ESP)"
 fmt_fat32 efi  "$(diskpart $FS_EFI_A)"
 fmt_fat32 efi  "$(diskpart $FS_EFI_B)"
 
+# Install OS A/B partitions
+rootdevice="docker://ghcr.io/boukehaarsma23/bouhaa-os:latest"
+estat "Imaging OS partition A"
+imageroot "$rootdevice" "$(diskpart $FS_ROOT_A)"
+
+estat "Imaging OS partition B"
+imageroot "$rootdevice" "$(diskpart $FS_ROOT_B)"
+
+estat "Finalizing boot configurations"
+finalize_part A
+finalize_part B
+estat "Finalizing EFI system partition"
+cmd steamos-chroot --no-overlay --disk "$DISK" --partset A -- steamcl-install --flags restricted --force-extra-removable

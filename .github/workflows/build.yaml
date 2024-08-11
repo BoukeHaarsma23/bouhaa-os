@@ -66,6 +66,8 @@ jobs:
             labels: |
               org.opencontainers.image.title=${{ env.IMAGE_NAME }}
               org.opencontainers.image.description=Gaming
+            extra-args: |
+              --isolation chroot
     
       # Push the image to GHCR (Image Registry)
       - name: Push To GHCR

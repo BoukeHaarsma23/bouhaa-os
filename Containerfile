@@ -8,7 +8,8 @@ COPY --from=builder /tmp/repo /tmp/repo
 # Run commands in container
 RUN cp /etc/pacman.conf /etc/pacman.conf.bak && \
     sed -i '/^\[core\]/s/^/\[chos\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
-    pacman --noconfirm -Syyuu --overwrite ="*" linux steamos-efi grub dracut && \ 
+    pacman --noconfirm -Syyuu --overwrite ="*" linux steamos-efi grub dracut && \
+    rm -rf /tmp/repo && \ 
     mv /etc/pacman.conf.bak /etc/pacman.conf
 
 FROM scratch

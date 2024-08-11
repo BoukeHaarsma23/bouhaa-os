@@ -60,7 +60,7 @@ finalize_part()
   cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- mkdir -p /esp/SteamOS/conf
   cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- steamos-partsets /efi/SteamOS/partsets
   cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- steamos-bootconf create --image "$1" --conf-dir /esp/SteamOS/conf --efi-dir /efi --set title "$1"
-  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- bootctl --esp-path=/efi --boot-path=/efi install
+  cmd steamos-chroot --no-overlay --disk "$DISK" --partset "$1" -- grub-mkimage -o /efi/SteamOS/grubx64.efi -O x86_64-efi -p /boot
 }
 
 # Replace the device rootfs

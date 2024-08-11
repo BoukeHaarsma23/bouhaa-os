@@ -3,8 +3,8 @@
 
 set -eu
 
-pacman --noconfirm -Sy archlinux-keyring git skopeo
-
+pacman --noconfirm -Sy archlinux-keyring git skopeo jq
+cp steamos* /bin
 die() { echo >&2 "!! $*"; exit 1; }
 readvar() { IFS= read -r -d '' "$1" || true; }
 
@@ -73,8 +73,15 @@ imageroot()
   local source="$1"
   local newroot="$2"
   mkdir -p /mnt/deploy
+  mkdir -p /tmp/deploy
   mount $newroot /mnt/deploy
-  skopeo copy $source /mnt/deploy
+  skopeo copy $source dir:/tmp/deploy
+  readarray -t LAYERS < <(cat /tmp/deploy/manifest.json | jq -r '.layers[].digest')
+  for LAYER in "${LAYERS[@]}"; do
+    IMG_FILE=$(echo "${LAYER}" | cut -f 2 -d ':' )
+    IMG_FILE="/tmp/deploy/${IMG_FILE}" 
+    tar --same-owner -xf ${IMG_FILE} -C /mnt/deploy
+  done
   umount $newroot
   rm -rf /mnt/deploy
 }
@@ -134,9 +141,9 @@ fmt_fat32 efi  "$(diskpart $FS_EFI_B)"
 # Install OS A/B partitions
 source="docker://ghcr.io/boukehaarsma23/bouhaa-os:latest"
 estat "Imaging OS partition A"
-fmt_ext4 root "$(diskpart $FS_ROOT_A)"
+fmt_ext4 rootfs-A "$(diskpart $FS_ROOT_A)"
 imageroot "$source" "$(diskpart $FS_ROOT_A)"
-fmt_ext4 root "$(diskpart $FS_ROOT_B)"
+fmt_ext4 rootfs-B "$(diskpart $FS_ROOT_B)"
 estat "Imaging OS partition B"
 imageroot "$source" "$(diskpart $FS_ROOT_B)"
 

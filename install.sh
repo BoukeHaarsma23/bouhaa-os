@@ -2,7 +2,7 @@
 # largely copied from steamos revery stuff. Thanks valve!
 
 set -eu
-
+pacman-key --init
 pacman --noconfirm -Sy archlinux-keyring git skopeo jq
 cp steamos* /bin
 die() { echo >&2 "!! $*"; exit 1; }

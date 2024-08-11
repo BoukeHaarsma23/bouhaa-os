@@ -3,6 +3,8 @@
 
 set -eu
 
+pacman --noconfirm -Syu git skopeo
+
 die() { echo >&2 "!! $*"; exit 1; }
 readvar() { IFS= read -r -d '' "$1" || true; }
 
@@ -107,10 +109,4 @@ estat "Creating boot partitions"
 fmt_fat32 esp  "$(diskpart $FS_ESP)"
 fmt_fat32 efi  "$(diskpart $FS_EFI_A)"
 fmt_fat32 efi  "$(diskpart $FS_EFI_B)"
-
-# Freeze our rootfs
-estat "Freezing rootfs"
-unfreeze() { fsfreeze -u /; }
-onexit+=(unfreeze)
-cmd fsfreeze -f /
 

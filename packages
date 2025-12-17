@@ -1,13 +1,8 @@
 +steam
-+linux-cachyos
-+linux-cachyos-headers
-+linux-firmware
 +nano
 +pipewire
 +bouhaa/mesa-tkg-git
 +bouhaa/lib32-mesa-tkg-git
 +bouhaa/gamescope-git
 +mangohud
-+bouhaa/zenergy-dkms-git
 +bouhaa/gamescope-session-steam-git
--linux

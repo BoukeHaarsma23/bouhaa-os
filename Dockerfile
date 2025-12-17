@@ -12,6 +12,7 @@ COPY --from=builder /tmp/repo /tmp/repo
 RUN pacman-key --init && \
     pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com && \
     pacman-key --lsign-key F3B607488DB35A47 && \
+    sed -i '/^NoUpgrade[[:space:]]*=/ s/$/ pacman.conf/' /etc/pacman.conf && \
     pacman -U --noconfirm \
     https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst \
     https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-mirrorlist-22-1-any.pkg.tar.zst \
@@ -32,7 +33,8 @@ RUN pacman-key --init && \
     pacman -Rns --noconfirm $PKG_REMOVE; \
     pacman -Scc --noconfirm; \
     fi && \
-    mv /etc/pacman.conf.bak /etc/pacman.conf
+    mv /etc/pacman.conf.bak /etc/pacman.conf && \
+    cat pacman.conf 
 
 FROM scratch
 COPY --from=image / /

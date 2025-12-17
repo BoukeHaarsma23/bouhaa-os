@@ -23,8 +23,6 @@ RUN pacman-key --init && \
     [cachyos-extra-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n' /etc/pacman.conf &&\
     sed -i '/^\[extra\]/i \
     [multilib]\nInclude = /etc/pacman.d/mirrorlist\n' /etc/pacman.conf && \
-    grep "= */var" /etc/pacman.conf | sed "/= *\/var/s/.*=// ; s/ //" | xargs -n1 sh -c 'mkdir -p "/usr/lib/sysimage/$(dirname $(echo $1 | sed "s@/var/@@"))" && mv -v "$1" "/usr/lib/sysimage/$(echo "$1" | sed "s@/var/@@")"' '' && \
-    sed -i -e "/= *\/var/ s/^#//" -e "s@= */var@= /usr/lib/sysimage@g" -e "/DownloadUser/d" /etc/pacman.conf && \
     cp /etc/pacman.conf /etc/pacman.conf.bak && \
     sed -i '/^\[cachyos\]/s/^/\[bouhaa\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
     if [ -n "$PKG_INSTALL" ]; then \

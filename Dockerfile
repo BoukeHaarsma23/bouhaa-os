@@ -23,6 +23,7 @@ RUN pacman-key --init && \
     pacman -Rns --noconfirm $PKG_REMOVE; \
     pacman -Scc --noconfirm; \
     fi && \
+    rm -rf /tmp && \
     mv /etc/pacman.conf.bak /etc/pacman.conf && \
     cat /etc/pacman.conf
 

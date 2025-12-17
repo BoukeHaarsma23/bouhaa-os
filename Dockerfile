@@ -1,7 +1,7 @@
 ARG BUILDER="ghcr.io/boukehaarsma23/aur-builder:main"
 FROM ${BUILDER} AS builder
 
-FROM ghcr.io/bootcrew/arch-bootc:latest AS image
+FROM ghcr.io/bootcrew/arch-bootc:latest
 
 ARG PKG_INSTALL
 ARG PKG_REMOVE
@@ -23,10 +23,8 @@ RUN pacman-key --init && \
     pacman -Rns --noconfirm $PKG_REMOVE; \
     pacman -Scc --noconfirm; \
     fi && \
-    rm -rf /tmp && \
+    rm -rf /tmp/repo && \
     mv /etc/pacman.conf.bak /etc/pacman.conf && \
+    pacman -S --noconfirm --clean && \
     cat /etc/pacman.conf
-
-FROM scratch
-COPY --from=image / /
 RUN bootc container lint

@@ -47,5 +47,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            PKG_INSTALL="$PKG_INSTALL"
-            PKG_REMOVE="$PKG_REMOVE"
+            PKG_INSTALL=${{ env.PKG_INSTALL }}
+            PKG_REMOVE=${{ env.PKG_REMOVE }}

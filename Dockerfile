@@ -1,7 +1,7 @@
 ARG BUILDER="ghcr.io/boukehaarsma23/aur-builder:main"
-FROM ${BUILDER} as builder
+FROM ${BUILDER} AS builder
 
-FROM ghcr.io/bootcrew/arch-bootc:latest as image
+FROM ghcr.io/bootcrew/arch-bootc:latest AS image
 
 ARG PKG_INSTALL
 ARG PKG_REMOVE

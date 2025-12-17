@@ -32,6 +32,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Read package lists
+        id: pkgs
+        run: |
+          PKG_INSTALL=$(grep '^+' packages | sed 's/^+//' | xargs)
+          PKG_REMOVE=$(grep '^-' packages | sed 's/^-//' | xargs)
+          echo "PKG_INSTALL=$PKG_INSTALL" >> $GITHUB_ENV
+          echo "PKG_REMOVE=$PKG_REMOVE" >> $GITHUB_ENV
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -40,5 +47,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            PKG_INSTALL="$(grep '^+' packages | sed 's/^+//' | tr '\n' ' ')"
-            PKG_REMOVE="$(grep '^-' packages | sed 's/^-//' | tr '\n' ' ')"
+            PKG_INSTALL="$PKG_INSTALL"
+            PKG_REMOVE="$PKG_REMOVE"

@@ -1,3 +1,20 @@
+# needed
++base
++dracut
++linux-cachyos
++linux-firmware
++ostree
++btrfs-progs
++e2fsprogs
++xfsprogs
++dosfstools
++skopeo
++dbus
++dbus-glib
++glib2
++ostree
++shadow
+# Extras
 +steam
 +nano
 +pipewire
@@ -6,5 +23,3 @@
 +bouhaa/gamescope-git
 +mangohud
 +bouhaa/gamescope-session-steam-git
-+linux-cachyos
--linux

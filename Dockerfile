@@ -1,29 +1,33 @@
 ARG BUILDER="ghcr.io/boukehaarsma23/aur-builder:main"
 FROM ${BUILDER} AS builder
 
-FROM ghcr.io/bootcrew/arch-bootc:latest
+FROM docker.io/archlinux/archlinux:latest
 
 ARG PKG_INSTALL
 ARG PKG_REMOVE
 
 COPY --from=builder /tmp/repo /tmp/repo
-RUN echo -e "[Trigger]\\nOperation = Install\\nOperation = Upgrade\\nType = Package\\nTarget = *\\n\\n[Action]\\nDescription = Cleaning up package cache...\\nDepends = coreutils\\nWhen = PostTransaction\\nExec = /usr/bin/rm -rf /var/cache/pacman/pkg" \
-    | tee /usr/share/libalpm/hooks/package-cleanup.hook && \
+# Move everything from `/var` to `/usr/lib/sysimage` so behavior around pacman remains the same on `bootc usroverlay`'d systems
+# Add cachyos repo's
+RUN grep "= */var" /etc/pacman.conf | sed "/= *\/var/s/.*=// ; s/ //" | xargs -n1 sh -c 'mkdir -p "/usr/lib/sysimage/$(dirname $(echo $1 | sed "s@/var/@@"))" && mv -v "$1" "/usr/lib/sysimage/$(echo "$1" | sed "s@/var/@@")"' '' && \
+    sed -i -e "/= *\/var/ s/^#//" -e "s@= */var@= /usr/lib/sysimage@g" -e "/DownloadUser/d" /etc/pacman.conf && \
+    sed -i '/ParallelDownloads/s/^/#/g' /etc/pacman.conf && \
     pacman-key --init && \
     pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com && \
     pacman-key --lsign-key F3B607488DB35A47 && \
-    sed -i '/ParallelDownloads/s/^/#/g' /etc/pacman.conf && \
     pacman -U --noconfirm \
     https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-keyring-20240331-1-any.pkg.tar.zst \
     https://mirror.cachyos.org/repo/x86_64/cachyos/cachyos-v3-mirrorlist-22-1-any.pkg.tar.zst \
     https://mirror.cachyos.org/repo/x86_64/cachyos/pacman-7.1.0.r7.gb9f7d4a-3-x86_64.pkg.tar.zst && \
-    sed -i '/^\[core\]/i\
-    [cachyos-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n\
-    [cachyos-core-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n\
-    [cachyos-extra-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n' /etc/pacman.conf &&\
+    sed -i '/^\[core\]/i \
+    [cachyos-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n \
+    [cachyos-core-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n\n \
+    [cachyos-extra-v3]\nInclude = /etc/pacman.d/cachyos-v3-mirrorlist\n' /etc/pacman.conf && \
     sed -i '/^\[extra\]/i \
-    [multilib]\nInclude = /etc/pacman.d/mirrorlist\n' /etc/pacman.conf && \
-    cp /etc/pacman.conf /etc/pacman.conf.bak && \
+    [multilib]\nInclude = /etc/pacman.d/mirrorlist\n' /etc/pacman.conf
+
+# add custom packages
+RUN cp /etc/pacman.conf /etc/pacman.conf.bak && \
     sed -i '/^\[cachyos-v3\]/s/^/\[bouhaa\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
     if [ -n "$PKG_INSTALL" ]; then \
     pacman -Sy --noconfirm --needed --overwrite '*' $PKG_INSTALL; \
@@ -33,6 +37,28 @@ RUN echo -e "[Trigger]\\nOperation = Install\\nOperation = Upgrade\\nType = Pack
     pacman -Scc --noconfirm; \
     fi && \
     rm -rf /tmp/repo && \
-    mv /etc/pacman.conf.bak /etc/pacman.conf
+    mv /etc/pacman.conf.bak /etc/pacman.conf && \
+    pacman -S --clean --noconfirm
 
+# https://github.com/bootc-dev/bootc/issues/1801
+RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root \
+    pacman -S --noconfirm make git rust go-md2man && \
+    git clone "https://github.com/bootc-dev/bootc.git" /tmp/bootc && \
+    make -C /tmp/bootc bin install-all && \
+    printf "systemdsystemconfdir=/etc/systemd/system\nsystemdsystemunitdir=/usr/lib/systemd/system\n" | tee /usr/lib/dracut/dracut.conf.d/30-bootcrew-fix-bootc-module.conf && \
+    printf 'reproducible=yes\nhostonly=no\ncompress=zstd\nadd_dracutmodules+=" ostree bootc "' | tee "/usr/lib/dracut/dracut.conf.d/30-bootcrew-bootc-container-build.conf" && \
+    dracut --force "$(find /usr/lib/modules -maxdepth 1 -type d | grep -v -E "*.img" | tail -n 1)/initramfs.img" && \
+    pacman -Rns --noconfirm make git rust go-md2man && \
+    pacman -S --clean --noconfirm
+
+# Necessary for general behavior expected by image-based systems
+RUN sed -i 's|^HOME=.*|HOME=/var/home|' "/etc/default/useradd" && \
+    rm -rf /boot /home /root /usr/local /srv /var /usr/lib/sysimage/log /usr/lib/sysimage/cache/pacman/pkg && \
+    mkdir -p /sysroot /boot /usr/lib/ostree /var && \
+    ln -s sysroot/ostree /ostree && ln -s var/roothome /root && ln -s var/srv /srv && ln -s var/opt /opt && ln -s var/mnt /mnt && ln -s var/home /home && \
+    echo "$(for dir in opt home srv mnt usrlocal ; do echo "d /var/$dir 0755 root root -" ; done)" | tee -a "/usr/lib/tmpfiles.d/bootc-base-dirs.conf" && \
+    printf "d /var/roothome 0700 root root -\nd /run/media 0755 root root -" | tee -a "/usr/lib/tmpfiles.d/bootc-base-dirs.conf" && \
+    printf '[composefs]\nenabled = yes\n[sysroot]\nreadonly = true\n' | tee "/usr/lib/ostree/prepare-root.conf"
+RUN pacman -S whois --noconfirm
+RUN usermod -p "$(echo "changeme" | mkpasswd -s)" root
 RUN bootc container lint

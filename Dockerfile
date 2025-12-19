@@ -17,7 +17,7 @@ RUN grep "= */var" /etc/pacman.conf | sed "/= *\/var/s/.*=// ; s/ //" | xargs -n
 RUN cp /etc/pacman.conf /etc/pacman.conf.bak && \
     sed -i '/^\[extra\]/s/^/\[bouhaa\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
     if [ -n "$PKG_INSTALL" ]; then \
-    pacman -Sy --noconfirm --needed --overwrite '*' $PKG_INSTALL; \
+    pacman -Syy --noconfirm --needed --overwrite '*' $PKG_INSTALL; \
     fi && \
     if [ -n "$PKG_REMOVE" ]; then \
     pacman -Rns --noconfirm $PKG_REMOVE; \

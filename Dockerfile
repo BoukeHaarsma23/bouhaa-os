@@ -17,7 +17,7 @@ RUN grep "= */var" /etc/pacman.conf | sed "/= *\/var/s/.*=// ; s/ //" | xargs -n
 
 # add custom packages and fix to archive date of builder
 RUN cp /etc/pacman.conf /etc/pacman.conf.bak && \
-    sed -i '/^\[extra\]/s/^/\[bouhaa\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
+    sed -i '/^\[extra\]/s|^|[multilib]\nInclude = /etc/pacman.d/mirrorlist\n\n[bouhaa]\nSigLevel = Optional TrustAll\nServer = file:///tmp/repo\n\n|' /etc/pacman.conf && \
     if [ -n "$PKG_INSTALL" ]; then \
     pacman -Syyuu --noconfirm --needed --overwrite '*' $PKG_INSTALL; \
     fi && \

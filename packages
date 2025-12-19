@@ -1,5 +1,6 @@
 # needed
 +base
++bootc
 +dracut
 +linux
 +linux-firmware

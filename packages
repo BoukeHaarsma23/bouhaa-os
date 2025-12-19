@@ -25,5 +25,6 @@
 +bouhaa/gamescope-session-steam-git
 +plymouth
 +sudo
++core/lib32-gcc-libs
 -base-devel
 -git

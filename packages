@@ -1,7 +1,7 @@
 # needed
 +base
 +dracut
-+linux-cachyos
++linux
 +linux-firmware
 +ostree
 +btrfs-progs
@@ -25,6 +25,5 @@
 +bouhaa/gamescope-session-steam-git
 +plymouth
 +sudo
-+core/lib32-gcc-libs
 -base-devel
 -git

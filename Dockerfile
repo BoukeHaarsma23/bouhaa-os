@@ -1,23 +1,25 @@
 ARG BUILDER="ghcr.io/boukehaarsma23/aur-builder:main"
 FROM ${BUILDER} AS builder
 
-FROM docker.io/cachyos/cachyos-v3:latest
+FROM docker.io/archlinux/archlinux:base
 
 ARG PKG_INSTALL
 ARG PKG_REMOVE
 
 COPY --from=builder /tmp/repo /tmp/repo
+COPY --from=builder /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist
+
 # Move everything from `/var` to `/usr/lib/sysimage` so behavior around pacman remains the same on `bootc usroverlay`'d systems
 # Add cachyos repo's
 RUN grep "= */var" /etc/pacman.conf | sed "/= *\/var/s/.*=// ; s/ //" | xargs -n1 sh -c 'mkdir -p "/usr/lib/sysimage/$(dirname $(echo $1 | sed "s@/var/@@"))" && mv -v "$1" "/usr/lib/sysimage/$(echo "$1" | sed "s@/var/@@")"' '' && \
     sed -i -e "/= *\/var/ s/^#//" -e "s@= */var@= /usr/lib/sysimage@g" -e "/DownloadUser/d" /etc/pacman.conf && \
     sed -i '/ParallelDownloads/s/^/#/g' /etc/pacman.conf
 
-# add custom packages
+# add custom packages and fix to archive date of builder
 RUN cp /etc/pacman.conf /etc/pacman.conf.bak && \
     sed -i '/^\[extra\]/s/^/\[bouhaa\]\nSigLevel = Optional TrustAll\nServer = file:\/\/\/tmp\/repo\n\n/' /etc/pacman.conf && \
     if [ -n "$PKG_INSTALL" ]; then \
-    pacman -Syy --noconfirm --needed --overwrite '*' $PKG_INSTALL; \
+    pacman -Syyuu --noconfirm --needed --overwrite '*' $PKG_INSTALL; \
     fi && \
     if [ -n "$PKG_REMOVE" ]; then \
     pacman -Rns --noconfirm $PKG_REMOVE; \

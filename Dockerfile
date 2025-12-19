@@ -46,6 +46,4 @@ RUN sed -i 's|^HOME=.*|HOME=/var/home|' "/etc/default/useradd" && \
     echo "$(for dir in opt home srv mnt usrlocal ; do echo "d /var/$dir 0755 root root -" ; done)" | tee -a "/usr/lib/tmpfiles.d/bootc-base-dirs.conf" && \
     printf "d /var/roothome 0700 root root -\nd /run/media 0755 root root -" | tee -a "/usr/lib/tmpfiles.d/bootc-base-dirs.conf" && \
     printf '[composefs]\nenabled = yes\n[sysroot]\nreadonly = true\n' | tee "/usr/lib/ostree/prepare-root.conf"
-RUN pacman -S whois --noconfirm
-RUN usermod -p "$(echo "changeme" | mkpasswd -s)" root
 RUN bootc container lint
